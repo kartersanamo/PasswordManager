@@ -1,0 +1,174 @@
+# Flappy Bird
+
+A modern Java implementation of the classic Flappy Bird game with enhanced features and polished gameplay.
+
+![Java](https://img.shields.io/badge/Java-25-orange.svg)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Version](https://img.shields.io/badge/Version-1.0.0-green.svg)
+
+## Features
+
+### Gameplay
+- **Classic Flappy Bird mechanics** - Navigate through pipes by tapping space
+- **Physics-based movement** - Realistic gravity and jump mechanics
+- **Smooth animations** - Dynamic bird sprites that change based on velocity
+- **Collision detection** - Accurate hitboxes for fair gameplay
+- **Score tracking** - Keep track of your high scores
+
+### Visual Features
+- **Day/Night Mode** - Toggle between beautiful day and night backgrounds
+- **Sprite-based graphics** - Authentic Flappy Bird visuals
+- **Number sprites** - Classic pixel-art score display
+- **Smooth scrolling** - Parallax ground with tiled base sprites
+- **Animated bird** - Three bird sprites (upflap, midflap, downflap) based on velocity
+
+### Audio
+- **Sound effects** - Wing flaps, scoring, collision sounds
+- **Mute toggle** - Easily enable/disable all game sounds
+- **Multiple audio clips** - Wing, point, hit, die, and swoosh sounds
+
+### User Interface
+- **On-screen controls** - Day/Night and Sound toggle buttons
+- **Game states** - Start screen, gameplay, and game over screens
+- **Instant restart** - Press SPACE to restart after game over
+- **Quick exit** - Window closes instantly when clicking the X button
+
+## Requirements
+
+- **Java 22 or higher**
+- **Maven 3.6+** (for building from source)
+- **Operating System**: Windows, macOS, or Linux
+
+## Installation
+
+### Download Release
+1. Download the latest release from the [Releases](https://github.com/kartersanamo/FlappyBird/releases) page
+2. Extract the archive
+3. Run the JAR file:
+   ```bash
+   java -jar FlappyBird-1.0.0.jar
+   ```
+
+### Build from Source
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/kartersanamo/FlappyBird.git
+   cd FlappyBird
+   ```
+
+2. Build with Maven:
+   ```bash
+   mvn clean package
+   ```
+
+3. Run the game:
+   ```bash
+   java -jar target/FlappyBird-1.0.0.jar
+   ```
+
+## How to Play
+
+### Controls
+- **SPACE** - Jump / Start game / Restart after game over
+- **Night Toggle Button** (top-right) - Switch between day and night backgrounds
+- **Sound Toggle Button** (top-right) - Mute/unmute game sounds
+
+### Objective
+Navigate the bird through the pipes by tapping SPACE to flap. Each successful pass earns you a point. The game ends when you hit a pipe, the ground, or the ceiling.
+
+### Tips
+- **Timing is key** - Tap space at the right moment to maintain altitude
+- **Watch the bird sprite** - The bird's animation indicates its velocity
+- **Practice makes perfect** - Learn the rhythm of jumping
+
+## Project Structure
+
+```
+FlappyBird/
+├── src/
+│   ├── main/
+│   │   ├── java/com/kartersanamo/flappyBird/
+│   │   │   ├── Main.java           # Main game loop and logic
+│   │   │   ├── FlappyBird.java     # Rendering and UI panel
+│   │   │   ├── Bird.java           # Bird sprite and animations
+│   │   │   ├── Pipe.java           # Pipe objects
+│   │   │   └── AudioManager.java   # Sound management
+│   │   └── resources/
+│   │       ├── sprites/            # Game graphics
+│   │       └── audio/              # Sound effects
+│   └── test/java/                  # Unit tests
+├── docs/                           # Documentation
+│   └── v1.0.0/                     # Release notes
+├── pom.xml                         # Maven configuration
+├── LICENSE                         # MIT License
+└── README.md                       # This file
+```
+
+## Technical Details
+
+### Architecture
+- **Language**: Java 22
+- **GUI Framework**: Java Swing
+- **Audio**: javax.sound.sampled
+- **Build Tool**: Maven
+- **Design Pattern**: MVC (Model-View-Controller)
+
+### Game Constants
+- **Screen Size**: 460 × 819 pixels (1.6x scale of original)
+- **Update Interval**: 22ms (~45 FPS)
+- **Pipe Speed**: 4 pixels/update
+- **Gravity**: 1 pixel/update²
+- **Jump Strength**: -13 pixels/update
+- **Pipe Gap**: ~178 pixels
+
+### Performance
+- Smooth 45 FPS gameplay
+- Low CPU usage (~5-10%)
+- Instant window close
+- Minimal memory footprint (~50MB)
+
+## Credits
+
+### Assets
+- Original Flappy Bird sprites and sounds
+
+### Development
+- Developer: Karter Sanamo
+- Initial Release: March 2026
+- Version: 1.0.0
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Changelog
+
+See [CHANGELOG.md](docs/v1.0.0/RELEASE_NOTES.md) for detailed release notes.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Development Setup
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## Support
+
+For issues, questions, or suggestions:
+- **GitHub Issues**: [Create an issue](https://github.com/kartersanamo/FlappyBird/issues)
+- **Email**: karter.sanamo@example.com
+
+## Acknowledgments
+
+- Inspired by the original Flappy Bird by Dong Nguyen
+- Built with Java Swing for cross-platform compatibility
+- Sound effects from the original game
+
+---
+
+**Enjoy the game!** 🐦
+
