@@ -13,13 +13,12 @@ A modern Java implementation of the classic Flappy Bird game with enhanced featu
 - **Physics-based movement** - Realistic gravity and jump mechanics
 - **Smooth animations** - Dynamic bird sprites that change based on velocity
 - **Collision detection** - Accurate hitboxes for fair gameplay
-- **Score tracking** - Keep track of your high scores
+- **Score tracking** - Keep track of your score
 
 ### Visual Features
 - **Day/Night Mode** - Toggle between beautiful day and night backgrounds
 - **Sprite-based graphics** - Authentic Flappy Bird visuals
 - **Number sprites** - Classic pixel-art score display
-- **Smooth scrolling** - Parallax ground with tiled base sprites
 - **Animated bird** - Three bird sprites (upflap, midflap, downflap) based on velocity
 
 ### Audio
@@ -107,18 +106,18 @@ FlappyBird/
 ## Technical Details
 
 ### Architecture
-- **Language**: Java 22
+- **Language**: Java 25
 - **GUI Framework**: Java Swing
 - **Audio**: javax.sound.sampled
 - **Build Tool**: Maven
 - **Design Pattern**: MVC (Model-View-Controller)
 
 ### Game Constants
-- **Screen Size**: 460 × 819 pixels (1.6x scale of original)
+- **Screen Size**: 460 × 819 pixels (1.6x scale of background image)
 - **Update Interval**: 22ms (~45 FPS)
 - **Pipe Speed**: 4 pixels/update
 - **Gravity**: 1 pixel/update²
-- **Jump Strength**: -13 pixels/update
+- **Jump Strength**: -13 pixels/update (upwards)
 - **Pipe Gap**: ~178 pixels
 
 ### Performance
@@ -128,9 +127,11 @@ FlappyBird/
 - Minimal memory footprint (~50MB)
 
 ## Credits
+- Stratofortress at https://www.instructables.com/Java-Game-Programming-Tutorial-Flappy-Bird-Redux/ for inspiration & file structure
+- All code written by Karter Sanamo
 
 ### Assets
-- Original Flappy Bird sprites and sounds
+- Samuel Custodio at https://github.com/samuelcust/flappy-bird-assets for the assets
 
 ### Development
 - Developer: Karter Sanamo
@@ -160,12 +161,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 For issues, questions, or suggestions:
 - **GitHub Issues**: [Create an issue](https://github.com/kartersanamo/FlappyBird/issues)
-- **Email**: karter.sanamo@example.com
+- **Email**: kartersanamo@gmail.com
 
 ## Acknowledgments
 
 - Inspired by the original Flappy Bird by Dong Nguyen
-- Built with Java Swing for cross-platform compatibility
+- Built with Java Swing
 - Sound effects from the original game
 
 ---
