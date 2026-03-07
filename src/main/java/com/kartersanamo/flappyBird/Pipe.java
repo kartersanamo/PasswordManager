@@ -6,15 +6,21 @@ import java.awt.*;
 public class Pipe {
 
     private Image pipeImage;
-    private Rectangle pipeRect;
     private int pipeX;
     private int pipeY;
+    private final int pipeWidth;
+    private final int pipeHeight;
 
     public Pipe(int pipeWidth, int pipeHeight) {
-        this.pipeImage = new ImageIcon(Main.SPRITES_PATH + "/pipe-green.png").getImage().getScaledInstance(pipeWidth, pipeHeight, Image.SCALE_DEFAULT);
+        java.net.URL pipeURL = getClass().getResource(Main.SPRITES_PATH + "/pipe-green.png");
+        if (pipeURL != null) {
+            ImageIcon icon = new ImageIcon(pipeURL);
+            this.pipeImage = icon.getImage();
+        }
+        this.pipeWidth = pipeWidth;
+        this.pipeHeight = pipeHeight;
         this.pipeX = 1024;
         this.pipeY = 0;
-        this.pipeRect = new Rectangle(pipeX, pipeY, pipeImage.getWidth(null), pipeImage.getHeight(null));
     }
 
     public Image getImage() {
@@ -22,11 +28,11 @@ public class Pipe {
     }
 
     public int getWidth() {
-        return pipeImage.getWidth(null);
+        return pipeWidth;
     }
 
     public int getHeight() {
-        return pipeImage.getHeight(null);
+        return pipeHeight;
     }
 
     public int getX() {
