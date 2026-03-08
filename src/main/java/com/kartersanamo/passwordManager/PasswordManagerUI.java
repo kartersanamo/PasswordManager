@@ -153,9 +153,34 @@ public class PasswordManagerUI extends JFrame {
         }
     }
 
+    private JPanel createPasswordFieldWithToggle(JPasswordField passwordField) {
+        JPanel panel = new JPanel(new BorderLayout(2, 0));
+        panel.add(passwordField, BorderLayout.CENTER);
+
+        JButton toggleButton = new JButton("👁");
+        toggleButton.setPreferredSize(new Dimension(40, passwordField.getPreferredSize().height));
+        toggleButton.setFocusable(false);
+        toggleButton.setToolTipText("Show/Hide password");
+
+        final boolean[] isVisible = {false};
+        toggleButton.addActionListener(_ -> {
+            isVisible[0] = !isVisible[0];
+            if (isVisible[0]) {
+                passwordField.setEchoChar((char) 0);
+                toggleButton.setText("🙈");
+            } else {
+                passwordField.setEchoChar('•');
+                toggleButton.setText("👁");
+            }
+        });
+
+        panel.add(toggleButton, BorderLayout.EAST);
+        return panel;
+    }
+
     private void showAddPasswordDialog() {
         JDialog dialog = new JDialog(this, "Add New Password", true);
-        dialog.setSize(450, 350);
+        dialog.setSize(500, 350);
         dialog.setLocationRelativeTo(this);
 
         JPanel panel = new JPanel(new GridBagLayout());
@@ -167,6 +192,7 @@ public class PasswordManagerUI extends JFrame {
         JTextField serviceField = new JTextField(20);
         JTextField usernameField = new JTextField(20);
         JPasswordField passwordField = new JPasswordField(20);
+        JPanel passwordPanel = createPasswordFieldWithToggle(passwordField);
         JTextField notesField = new JTextField(20);
 
         JButton generateButton = new JButton("Generate");
@@ -179,7 +205,7 @@ public class PasswordManagerUI extends JFrame {
         });
 
         // Row 0: Service
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0; gbc.gridwidth = 1;
         panel.add(new JLabel("Website/Service:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 2;
         panel.add(serviceField, gbc);
@@ -190,11 +216,11 @@ public class PasswordManagerUI extends JFrame {
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 2;
         panel.add(usernameField, gbc);
 
-        // Row 2: Password with Generate button
+        // Row 2: Password with eye toggle and Generate button
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0; gbc.gridwidth = 1;
         panel.add(new JLabel("Password:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 1;
-        panel.add(passwordField, gbc);
+        panel.add(passwordPanel, gbc);
         gbc.gridx = 2; gbc.weightx = 0;
         panel.add(generateButton, gbc);
 
@@ -251,7 +277,7 @@ public class PasswordManagerUI extends JFrame {
         PasswordDatabase.PasswordEntry entry = allPasswords.get(modelRow);
 
         JDialog dialog = new JDialog(this, "Edit Password", true);
-        dialog.setSize(450, 350);
+        dialog.setSize(500, 350);
         dialog.setLocationRelativeTo(this);
 
         JPanel panel = new JPanel(new GridBagLayout());
@@ -263,6 +289,7 @@ public class PasswordManagerUI extends JFrame {
         JTextField serviceField = new JTextField(entry.getService(), 20);
         JTextField usernameField = new JTextField(entry.getUsername(), 20);
         JPasswordField passwordField = new JPasswordField(entry.getPassword(), 20);
+        JPanel passwordPanel = createPasswordFieldWithToggle(passwordField);
         JTextField notesField = new JTextField(entry.getNotes(), 20);
 
         JButton generateButton = new JButton("Generate");
@@ -275,7 +302,7 @@ public class PasswordManagerUI extends JFrame {
         });
 
         // Row 0: Service
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0; gbc.gridwidth = 1;
         panel.add(new JLabel("Website/Service:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 2;
         panel.add(serviceField, gbc);
@@ -286,11 +313,11 @@ public class PasswordManagerUI extends JFrame {
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 2;
         panel.add(usernameField, gbc);
 
-        // Row 2: Password with Generate button
+        // Row 2: Password with eye toggle and Generate button
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0; gbc.gridwidth = 1;
         panel.add(new JLabel("Password:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 1;
-        panel.add(passwordField, gbc);
+        panel.add(passwordPanel, gbc);
         gbc.gridx = 2; gbc.weightx = 0;
         panel.add(generateButton, gbc);
 
@@ -405,11 +432,38 @@ public class PasswordManagerUI extends JFrame {
 
     private String showPasswordGeneratorDialog(JDialog parent) {
         JDialog dialog = new JDialog(parent, "Password Generator", true);
-        dialog.setSize(450, 400);
+        dialog.setSize(500, 550);
         dialog.setLocationRelativeTo(parent);
 
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        // Preview panel at top
+        JPanel previewPanel = new JPanel(new BorderLayout(5, 5));
+        previewPanel.setBorder(BorderFactory.createTitledBorder("Generated Password"));
+
+        JTextField previewField = new JTextField();
+        previewField.setFont(new Font("Monospaced", Font.BOLD, 14));
+        previewField.setEditable(false);
+        previewField.setHorizontalAlignment(JTextField.CENTER);
+
+        JButton regenerateButton = new JButton("🔄 Regenerate");
+
+        previewPanel.add(previewField, BorderLayout.CENTER);
+        previewPanel.add(regenerateButton, BorderLayout.EAST);
+
+        mainPanel.add(previewPanel, BorderLayout.NORTH);
+
+        // Mode selection
+        JPanel modePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        modePanel.setBorder(BorderFactory.createTitledBorder("Password Type"));
+        ButtonGroup modeGroup = new ButtonGroup();
+        JRadioButton charModeRadio = new JRadioButton("Character-based", true);
+        JRadioButton wordModeRadio = new JRadioButton("Word-based");
+        modeGroup.add(charModeRadio);
+        modeGroup.add(wordModeRadio);
+        modePanel.add(charModeRadio);
+        modePanel.add(wordModeRadio);
 
         // Options panel
         JPanel optionsPanel = new JPanel(new GridBagLayout());
@@ -418,21 +472,38 @@ public class PasswordManagerUI extends JFrame {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
 
-        // Length slider
+        // Character-based options
         JLabel lengthLabel = new JLabel("Password Length: 16");
         JSlider lengthSlider = new JSlider(4, 64, 16);
         lengthSlider.setMajorTickSpacing(10);
         lengthSlider.setMinorTickSpacing(2);
         lengthSlider.setPaintTicks(true);
         lengthSlider.setPaintLabels(true);
-        lengthSlider.addChangeListener(_ -> lengthLabel.setText("Password Length: " + lengthSlider.getValue()));
 
-        // Checkboxes for character types
         JCheckBox uppercaseCheck = new JCheckBox("Uppercase (A-Z)", true);
         JCheckBox lowercaseCheck = new JCheckBox("Lowercase (a-z)", true);
         JCheckBox digitsCheck = new JCheckBox("Digits (0-9)", true);
         JCheckBox specialCheck = new JCheckBox("Special (!@#$%^&*...)", true);
 
+        // Word-based options
+        JLabel wordCountLabel = new JLabel("Number of Words: 4");
+        JSlider wordCountSlider = new JSlider(2, 8, 4);
+        wordCountSlider.setMajorTickSpacing(2);
+        wordCountSlider.setMinorTickSpacing(1);
+        wordCountSlider.setPaintTicks(true);
+        wordCountSlider.setPaintLabels(true);
+        wordCountSlider.setEnabled(false);
+
+        JLabel separatorLabel = new JLabel("Separator:");
+        JComboBox<String> separatorCombo = new JComboBox<>(new String[]{"-", "_", ".", " ", ""});
+        separatorCombo.setEnabled(false);
+
+        JCheckBox wordCapitalCheck = new JCheckBox("Capitalize words", true);
+        wordCapitalCheck.setEnabled(false);
+        JCheckBox wordDigitsCheck = new JCheckBox("Add numbers", true);
+        wordDigitsCheck.setEnabled(false);
+
+        // Add to options panel
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
         optionsPanel.add(lengthLabel, gbc);
         gbc.gridy = 1;
@@ -446,55 +517,44 @@ public class PasswordManagerUI extends JFrame {
         gbc.gridy = 5;
         optionsPanel.add(specialCheck, gbc);
 
-        mainPanel.add(optionsPanel, BorderLayout.NORTH);
+        gbc.gridy = 6; gbc.gridwidth = 2;
+        optionsPanel.add(new JSeparator(), gbc);
 
-        // Preview panel
-        JPanel previewPanel = new JPanel(new BorderLayout(5, 5));
-        previewPanel.setBorder(BorderFactory.createTitledBorder("Generated Password"));
+        gbc.gridy = 7;
+        optionsPanel.add(wordCountLabel, gbc);
+        gbc.gridy = 8;
+        optionsPanel.add(wordCountSlider, gbc);
+        gbc.gridy = 9; gbc.gridwidth = 1;
+        optionsPanel.add(separatorLabel, gbc);
+        gbc.gridx = 1;
+        optionsPanel.add(separatorCombo, gbc);
+        gbc.gridx = 0; gbc.gridy = 10;
+        optionsPanel.add(wordCapitalCheck, gbc);
+        gbc.gridy = 11;
+        optionsPanel.add(wordDigitsCheck, gbc);
 
-        JTextField previewField = new JTextField();
-        previewField.setFont(new Font("Monospaced", Font.PLAIN, 14));
-        previewField.setEditable(false);
-        previewField.setHorizontalAlignment(JTextField.CENTER);
+        // Center panel with mode and options
+        JPanel centerPanel = new JPanel(new BorderLayout(5, 5));
+        centerPanel.add(modePanel, BorderLayout.NORTH);
+        centerPanel.add(optionsPanel, BorderLayout.CENTER);
 
-        JButton regenerateButton = new JButton("🔄 Regenerate");
-        regenerateButton.addActionListener(_ -> {
-            PasswordGenerator.PasswordOptions options = new PasswordGenerator.PasswordOptions()
-                .setLength(lengthSlider.getValue())
-                .setUseUppercase(uppercaseCheck.isSelected())
-                .setUseLowercase(lowercaseCheck.isSelected())
-                .setUseDigits(digitsCheck.isSelected())
-                .setUseSpecial(specialCheck.isSelected());
-
-            String password = PasswordGenerator.generate(options);
-            previewField.setText(password);
-        });
-
-        previewPanel.add(previewField, BorderLayout.CENTER);
-        previewPanel.add(regenerateButton, BorderLayout.EAST);
-
-        mainPanel.add(previewPanel, BorderLayout.CENTER);
+        mainPanel.add(centerPanel, BorderLayout.CENTER);
 
         // Quick presets
         JPanel presetsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
         presetsPanel.setBorder(BorderFactory.createTitledBorder("Quick Presets"));
 
-        JButton strongButton = new JButton("Strong (20 chars)");
-        strongButton.addActionListener(_ -> previewField.setText(PasswordGenerator.generateStrong()));
-
-        JButton defaultButton = new JButton("Default (16 chars)");
-        defaultButton.addActionListener(_ -> previewField.setText(PasswordGenerator.generateDefault()));
-
-        JButton simpleButton = new JButton("Simple (12 chars, no special)");
-        simpleButton.addActionListener(_ -> previewField.setText(PasswordGenerator.generateSimple()));
-
-        JButton pinButton = new JButton("PIN (6 digits)");
-        pinButton.addActionListener(_ -> previewField.setText(PasswordGenerator.generatePin(6)));
+        JButton strongButton = new JButton("Strong (20)");
+        JButton defaultButton = new JButton("Default (16)");
+        JButton simpleButton = new JButton("Simple (12)");
+        JButton pinButton = new JButton("PIN (6)");
+        JButton wordsButton = new JButton("Words (4)");
 
         presetsPanel.add(strongButton);
         presetsPanel.add(defaultButton);
         presetsPanel.add(simpleButton);
         presetsPanel.add(pinButton);
+        presetsPanel.add(wordsButton);
 
         mainPanel.add(presetsPanel, BorderLayout.SOUTH);
 
@@ -504,6 +564,136 @@ public class PasswordManagerUI extends JFrame {
         JButton cancelButton = new JButton("Cancel");
 
         final String[] result = {null};
+
+        // Auto-regenerate function
+        Runnable autoGenerate = () -> {
+            PasswordGenerator.PasswordOptions options = new PasswordGenerator.PasswordOptions();
+
+            if (wordModeRadio.isSelected()) {
+                options.setUseWords(true)
+                    .setWordCount(wordCountSlider.getValue())
+                    .setWordSeparator((String) separatorCombo.getSelectedItem())
+                    .setUseUppercase(wordCapitalCheck.isSelected())
+                    .setUseDigits(wordDigitsCheck.isSelected());
+            } else {
+                options.setLength(lengthSlider.getValue())
+                    .setUseUppercase(uppercaseCheck.isSelected())
+                    .setUseLowercase(lowercaseCheck.isSelected())
+                    .setUseDigits(digitsCheck.isSelected())
+                    .setUseSpecial(specialCheck.isSelected());
+            }
+
+            String password = PasswordGenerator.generate(options);
+            previewField.setText(password);
+        };
+
+        // Mode switching
+        charModeRadio.addActionListener(_ -> {
+            lengthLabel.setEnabled(true);
+            lengthSlider.setEnabled(true);
+            uppercaseCheck.setEnabled(true);
+            lowercaseCheck.setEnabled(true);
+            digitsCheck.setEnabled(true);
+            specialCheck.setEnabled(true);
+
+            wordCountLabel.setEnabled(false);
+            wordCountSlider.setEnabled(false);
+            separatorLabel.setEnabled(false);
+            separatorCombo.setEnabled(false);
+            wordCapitalCheck.setEnabled(false);
+            wordDigitsCheck.setEnabled(false);
+
+            autoGenerate.run();
+        });
+
+        wordModeRadio.addActionListener(_ -> {
+            lengthLabel.setEnabled(false);
+            lengthSlider.setEnabled(false);
+            uppercaseCheck.setEnabled(false);
+            lowercaseCheck.setEnabled(false);
+            digitsCheck.setEnabled(false);
+            specialCheck.setEnabled(false);
+
+            wordCountLabel.setEnabled(true);
+            wordCountSlider.setEnabled(true);
+            separatorLabel.setEnabled(true);
+            separatorCombo.setEnabled(true);
+            wordCapitalCheck.setEnabled(true);
+            wordDigitsCheck.setEnabled(true);
+
+            autoGenerate.run();
+        });
+
+        // Live preview updates
+        lengthSlider.addChangeListener(_ -> {
+            lengthLabel.setText("Password Length: " + lengthSlider.getValue());
+            if (!lengthSlider.getValueIsAdjusting()) {
+                autoGenerate.run();
+            }
+        });
+
+        wordCountSlider.addChangeListener(_ -> {
+            wordCountLabel.setText("Number of Words: " + wordCountSlider.getValue());
+            if (!wordCountSlider.getValueIsAdjusting()) {
+                autoGenerate.run();
+            }
+        });
+
+        uppercaseCheck.addActionListener(_ -> autoGenerate.run());
+        lowercaseCheck.addActionListener(_ -> autoGenerate.run());
+        digitsCheck.addActionListener(_ -> autoGenerate.run());
+        specialCheck.addActionListener(_ -> autoGenerate.run());
+        separatorCombo.addActionListener(_ -> autoGenerate.run());
+        wordCapitalCheck.addActionListener(_ -> autoGenerate.run());
+        wordDigitsCheck.addActionListener(_ -> autoGenerate.run());
+
+        regenerateButton.addActionListener(_ -> autoGenerate.run());
+
+        // Presets
+        strongButton.addActionListener(_ -> {
+            charModeRadio.setSelected(true);
+            charModeRadio.getActionListeners()[0].actionPerformed(null);
+            lengthSlider.setValue(20);
+            uppercaseCheck.setSelected(true);
+            lowercaseCheck.setSelected(true);
+            digitsCheck.setSelected(true);
+            specialCheck.setSelected(true);
+            autoGenerate.run();
+        });
+
+        defaultButton.addActionListener(_ -> {
+            charModeRadio.setSelected(true);
+            charModeRadio.getActionListeners()[0].actionPerformed(null);
+            lengthSlider.setValue(16);
+            autoGenerate.run();
+        });
+
+        simpleButton.addActionListener(_ -> {
+            charModeRadio.setSelected(true);
+            charModeRadio.getActionListeners()[0].actionPerformed(null);
+            lengthSlider.setValue(12);
+            specialCheck.setSelected(false);
+            autoGenerate.run();
+        });
+
+        pinButton.addActionListener(_ -> {
+            charModeRadio.setSelected(true);
+            charModeRadio.getActionListeners()[0].actionPerformed(null);
+            lengthSlider.setValue(6);
+            uppercaseCheck.setSelected(false);
+            lowercaseCheck.setSelected(false);
+            specialCheck.setSelected(false);
+            digitsCheck.setSelected(true);
+            autoGenerate.run();
+        });
+
+        wordsButton.addActionListener(_ -> {
+            wordModeRadio.setSelected(true);
+            wordModeRadio.getActionListeners()[0].actionPerformed(null);
+            wordCountSlider.setValue(4);
+            separatorCombo.setSelectedItem("-");
+            autoGenerate.run();
+        });
 
         useButton.addActionListener(_ -> {
             result[0] = previewField.getText();
@@ -523,7 +713,7 @@ public class PasswordManagerUI extends JFrame {
         dialog.add(containerPanel);
 
         // Generate initial password
-        regenerateButton.doClick();
+        autoGenerate.run();
 
         dialog.setVisible(true);
 
