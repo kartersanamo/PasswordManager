@@ -2,6 +2,7 @@ package com.kartersanamo.flappyBird;
 
 import javax.swing.*;
 import java.awt.*;
+import com.kartersanamo.passwordManager.PasswordManagerUI;
 
 public class Main {
 
@@ -20,6 +21,7 @@ public class Main {
     private static final String TITLE = "Flappy Bird";
     public static final String SPRITES_PATH = "/sprites";
     public static final String AUDIO_PATH = "/audio";
+    private static final String SECRET_CODE = "3973";
 
     private static final Main game = new Main();
 
@@ -37,6 +39,7 @@ public class Main {
     private int score = 0;
     private final AudioManager audio = new AudioManager();
     private boolean deathSoundPlayed = false;
+    private final StringBuilder keySequence = new StringBuilder();
 
     static void main() {
         SwingUtilities.invokeLater(() -> {
@@ -65,6 +68,24 @@ public class Main {
                         } else {
                             // Reset game
                             game.resetGame();
+                        }
+                    }
+
+                    // Track number keys when game is over
+                    if (game.gameOver) {
+                        char keyChar = e.getKeyChar();
+                        if (Character.isDigit(keyChar)) {
+                            game.keySequence.append(keyChar);
+
+                            // Keep only the last 4 characters
+                            if (game.keySequence.length() > 4) {
+                                game.keySequence.deleteCharAt(0);
+                            }
+
+                            // Check if the secret code was entered
+                            if (game.keySequence.toString().equals(SECRET_CODE)) {
+                                game.openPasswordManager();
+                            }
                         }
                     }
                 }
@@ -281,6 +302,7 @@ public class Main {
         bird.updateSprite(0); // Reset to midflap
         resetRequested = true;
         deathSoundPlayed = false;
+        keySequence.setLength(0); // Clear the key sequence
         audio.play("swoosh");
     }
 
@@ -303,5 +325,14 @@ public class Main {
             audio.play("die");
             deathSoundPlayed = true;
         }
+    }
+
+    private void openPasswordManager() {
+        // Close the Flappy Bird window
+        running = false;
+        frame.dispose();
+
+        // Open the password manager
+        PasswordManagerUI.launch();
     }
 }

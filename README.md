@@ -1,10 +1,12 @@
-# Flappy Bird
+# Flappy Bird (with Hidden Password Manager)
 
-A modern Java implementation of the classic Flappy Bird game with enhanced features and polished gameplay.
+A modern Java implementation of the classic Flappy Bird game with enhanced features, polished gameplay, and a secret password manager hidden within.
 
 ![Java](https://img.shields.io/badge/Java-25-orange.svg)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/Version-1.0.0-green.svg)
+
+> **🔐 Secret Feature**: This game contains a hidden password manager accessible via a secret code. See [SECRET_ACCESS.md](SECRET_ACCESS.md) for details.
 
 ## Features
 
@@ -31,6 +33,19 @@ A modern Java implementation of the classic Flappy Bird game with enhanced featu
 - **Game states** - Start screen, gameplay, and game over screens
 - **Instant restart** - Press SPACE to restart after game over
 - **Quick exit** - Window closes instantly when clicking the X button
+
+### Hidden Features
+- **🔒 Secret Password Manager** - Access a full-featured password manager by entering a secret code on the game over screen
+  - Store and manage passwords securely
+  - **SQLite database persistence** - passwords saved permanently
+  - **🔍 Real-time search** - Filter across all fields instantly
+  - **🔐 Password generator** - Generate strong passwords with customizable options
+  - Add, edit, delete, and view password entries
+  - Copy passwords to clipboard
+  - No sample data - clean start
+  - See [SECRET_ACCESS.md](SECRET_ACCESS.md) or [QUICK_START.md](QUICK_START.md) for access instructions
+  - See [DATABASE_UPDATE.md](DATABASE_UPDATE.md) for database details
+  - See [SEARCH_AND_GENERATOR.md](SEARCH_AND_GENERATOR.md) for search & generator guide
 
 ## Requirements
 
@@ -86,18 +101,24 @@ Navigate the bird through the pipes by tapping SPACE to flap. Each successful pa
 FlappyBird/
 ├── src/
 │   ├── main/
-│   │   ├── java/com/kartersanamo/flappyBird/
-│   │   │   ├── Main.java           # Main game loop and logic
-│   │   │   ├── FlappyBird.java     # Rendering and UI panel
-│   │   │   ├── Bird.java           # Bird sprite and animations
-│   │   │   ├── Pipe.java           # Pipe objects
-│   │   │   └── AudioManager.java   # Sound management
+│   │   ├── java/com/kartersanamo/
+│   │   │   ├── flappyBird/
+│   │   │   │   ├── Main.java           # Main game loop and logic
+│   │   │   │   ├── FlappyBird.java     # Rendering and UI panel
+│   │   │   │   ├── Bird.java           # Bird sprite and animations
+│   │   │   │   ├── Pipe.java           # Pipe objects
+│   │   │   │   └── AudioManager.java   # Sound management
+│   │   │   └── passwordManager/
+│   │   │       └── PasswordManagerUI.java  # Hidden password manager
 │   │   └── resources/
 │   │       ├── sprites/            # Game graphics
 │   │       └── audio/              # Sound effects
 │   └── test/java/                  # Unit tests
 ├── docs/                           # Documentation
 │   └── v1.0.0/                     # Release notes
+├── SECRET_ACCESS.md                # Password manager access guide
+├── QUICK_START.md                  # Quick start guide
+├── IMPLEMENTATION_SUMMARY.md       # Technical implementation details
 ├── pom.xml                         # Maven configuration
 ├── LICENSE                         # MIT License
 └── README.md                       # This file
