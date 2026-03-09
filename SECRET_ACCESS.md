@@ -18,19 +18,58 @@ Once you've accessed the password manager, you can:
 - **Edit passwords** - Update existing entries
 - **Delete passwords** - Remove entries you no longer need
 - **Copy passwords** - Quick copy to clipboard
+- **Toggle View** - Reveal/hide passwords directly in the table
+- **Change Secret Code** - Update your secret code with automatic password migration
 - **Persistent storage** - All entries are saved to an SQLite database
+
+## 🔑 Changing Your Secret Code
+
+### ⚠️ IMPORTANT: Your Passwords Are Safe!
+
+**You can now change your secret code without losing your passwords!** The system automatically migrates all data.
+
+### Method 1: Via Password Manager UI (Recommended)
+
+1. Open Password Manager (enter code `3973` on game over screen)
+2. Click "🔑 Change Secret Code" button
+3. Enter current code, new code, and confirm
+4. All passwords automatically re-encrypted
+5. **Remember to update** `SECRET_CODE` in `Main.java`
+
+### Method 2: Via Code (Auto-Migration)
+
+1. Edit `Main.java`: Change `SECRET_CODE = "3973"` to your new code
+2. Launch game and enter NEW code
+3. System detects change and prompts for OLD code
+4. Enter old code (`3973`) when prompted
+5. Passwords automatically migrated to new code
 
 ## Security Notes
 
 - The secret code (`3973`) provides access to the password manager
+- **Secret code hash stored** - Only an Argon2 hash is saved (unbreakable)
+- **AES-256-GCM encryption** - Military-grade password protection
+- **Change code anytime** - Migration preserves all passwords
 - Passwords are displayed as dots (`••••••••`) in the table view
-- Use the "View Password" button to see actual passwords
+- Use "Toggle View" button to reveal passwords in the table
 - The password manager remains open until you close the window
 - **All passwords are saved to `passwords.db` and persist between sessions**
 - To return to Flappy Bird, close the password manager and restart the game
 - **Important**: Backup the `passwords.db` file to preserve your passwords
 
+## Troubleshooting
+
+### "Password Migration Required" Dialog
+Appears when you change SECRET_CODE in Main.java:
+- Enter your OLD secret code to decrypt existing passwords
+- System re-encrypts everything with the NEW code
+- If you forgot the old code, you'll need to start fresh
+
+### "Corrupted Password Entries" Dialog  
+Appears if you have passwords from the old encryption system:
+- Click "Yes" to remove corrupted entries
+- Re-add your passwords (they'll use the new secure system)
+
 ## Development
 
 This feature is designed to hide your password manager behind a harmless-looking game. The secret code must be entered on the game over screen to prevent accidental access.
-

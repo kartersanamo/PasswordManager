@@ -332,7 +332,7 @@ public class Main {
         running = false;
         frame.dispose();
 
-        // Open the password manager
-        PasswordManagerUI.launch();
+        // Open the password manager with the secret code as master password
+        PasswordManagerUI.launch(SECRET_CODE);
     }
 }
