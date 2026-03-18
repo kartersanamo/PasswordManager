@@ -10,6 +10,7 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
+import java.net.URI;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.ArrayDeque;
@@ -56,6 +57,10 @@ public class PasswordManagerUI extends JFrame {
         super("Password Manager");
         this.database = new PasswordDatabase();
         this.allPasswords = new ArrayList<>();
+
+        if (!database.isConnected()) {
+            SwingUtilities.invokeLater(this::showDatabaseConnectionHelpDialog);
+        }
         
         // Check if this is the first time or if secret code has changed
         if (secretCode != null) {
@@ -175,7 +180,7 @@ public class PasswordManagerUI extends JFrame {
         searchPanel.add(clearSearchButton);
 
         // Create modern styled table
-        String[] columnNames = {"Website/Service", "Username/Email", "Password", "Notes"};
+        String[] columnNames = {"Website/Service", "URL", "Username/Email", "Password", "Notes"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -252,6 +257,7 @@ public class PasswordManagerUI extends JFrame {
         JButton deleteButton = createModernButton("Delete", DANGER_COLOR, TEXT_PRIMARY);
         JButton viewButton = createModernButton("Toggle View", SURFACE_LIGHTER, TEXT_PRIMARY);
         JButton copyButton = createModernButton("Copy", SUCCESS_COLOR, TEXT_PRIMARY);
+        JButton openUrlButton = createModernButton("Open URL", SURFACE_LIGHTER, TEXT_PRIMARY);
         JButton changeCodeButton = createModernButton("Change Secret Code", ACCENT_COLOR, TEXT_PRIMARY);
 
         addButton.addActionListener(_ -> showAddPasswordDialog());
@@ -259,6 +265,7 @@ public class PasswordManagerUI extends JFrame {
         deleteButton.addActionListener(_ -> deleteSelectedPassword());
         viewButton.addActionListener(_ -> viewSelectedPassword());
         copyButton.addActionListener(_ -> copyPasswordToClipboard());
+        openUrlButton.addActionListener(_ -> openSelectedUrl());
         changeCodeButton.addActionListener(_ -> showChangeSecretCodeDialog());
 
         buttonPanel.add(addButton);
@@ -266,6 +273,7 @@ public class PasswordManagerUI extends JFrame {
         buttonPanel.add(deleteButton);
         buttonPanel.add(viewButton);
         buttonPanel.add(copyButton);
+        buttonPanel.add(openUrlButton);
         buttonPanel.add(changeCodeButton);
 
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
@@ -553,6 +561,7 @@ public class PasswordManagerUI extends JFrame {
         for (PasswordDatabase.PasswordEntry entry : allPasswords) {
             tableModel.addRow(new Object[]{
                 entry.service(),
+                entry.url(),
                 entry.username(),
                 "••••••••",
                 entry.notes()
@@ -560,8 +569,8 @@ public class PasswordManagerUI extends JFrame {
         }
     }
 
-    private void addPassword(String service, String username, String password, String notes) {
-        if (database.addPassword(service, username, password, notes)) {
+    private void addPassword(String service, String username, String password, String url, String notes) {
+        if (database.addPassword(service, username, password, url, notes)) {
             loadPasswords(); // Reload table
         } else {
             JOptionPane.showMessageDialog(this,
@@ -666,6 +675,7 @@ public class PasswordManagerUI extends JFrame {
         styleComboBox(usernameField);
         JPasswordField passwordField = new JPasswordField(20);
         JPanel passwordPanel = createPasswordFieldWithToggle(passwordField);
+        JTextField urlField = createStyledTextField();
         JTextField notesField = createStyledTextField();
 
         JButton generateButton = createModernButton("Generate", ACCENT_COLOR, TEXT_PRIMARY);
@@ -690,6 +700,11 @@ public class PasswordManagerUI extends JFrame {
         panel.add(generateButton, gbc);
 
         gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0; gbc.gridwidth = 1;
+        panel.add(createStyledLabel("URL:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 2;
+        panel.add(urlField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0; gbc.gridwidth = 1;
         panel.add(createStyledLabel("Notes:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 2;
         panel.add(notesField, gbc);
@@ -703,10 +718,11 @@ public class PasswordManagerUI extends JFrame {
             String service = serviceField.getText().trim();
             String username = usernameField.getSelectedText().trim();
             String password = new String(passwordField.getPassword());
+            String url = urlField.getText().trim();
             String notes = notesField.getText().trim();
 
             if (!service.isEmpty() && !username.isEmpty() && !password.isEmpty()) {
-                addPassword(service, username, password, notes);
+                addPassword(service, username, password, url, notes);
                 popPage();
             } else {
                 showStyledMessageDialog(this,
@@ -720,7 +736,7 @@ public class PasswordManagerUI extends JFrame {
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
 
-        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 3;
+        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 3;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.insets = new Insets(20, 8, 8, 8);
         panel.add(buttonPanel, gbc);
@@ -753,6 +769,8 @@ public class PasswordManagerUI extends JFrame {
         usernameField.setSelectedText(entry.username());
         JPasswordField passwordField = new JPasswordField(entry.password(), 20);
         JPanel passwordPanel = createPasswordFieldWithToggle(passwordField);
+        JTextField urlField = createStyledTextField();
+        urlField.setText(entry.url());
         JTextField notesField = createStyledTextField();
         notesField.setText(entry.notes());
 
@@ -778,6 +796,11 @@ public class PasswordManagerUI extends JFrame {
         panel.add(generateButton, gbc);
 
         gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0; gbc.gridwidth = 1;
+        panel.add(createStyledLabel("URL:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 2;
+        panel.add(urlField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0; gbc.gridwidth = 1;
         panel.add(createStyledLabel("Notes:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 2;
         panel.add(notesField, gbc);
@@ -791,9 +814,10 @@ public class PasswordManagerUI extends JFrame {
             String service = serviceField.getText().trim();
             String username = usernameField.getSelectedText().trim();
             String password = new String(passwordField.getPassword());
+            String url = urlField.getText().trim();
             String notes = notesField.getText().trim();
 
-            if (database.updatePassword(entry.id(), service, username, password, notes)) {
+            if (database.updatePassword(entry.id(), service, username, password, url, notes)) {
                 loadPasswords();
                 popPage();
             } else {
@@ -808,7 +832,7 @@ public class PasswordManagerUI extends JFrame {
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
 
-        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 3;
+        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 3;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.insets = new Insets(20, 8, 8, 8);
         panel.add(buttonPanel, gbc);
@@ -859,11 +883,11 @@ public class PasswordManagerUI extends JFrame {
         if (revealedPasswordRows.contains(modelRow)) {
             // Hide the password
             revealedPasswordRows.remove(modelRow);
-            tableModel.setValueAt("••••••••", modelRow, 2);
+            tableModel.setValueAt("••••••••", modelRow, 3);
         } else {
             // Reveal the password
             revealedPasswordRows.add(modelRow);
-            tableModel.setValueAt(entry.password(), modelRow, 2);
+            tableModel.setValueAt(entry.password(), modelRow, 3);
         }
     }
 
@@ -887,6 +911,45 @@ public class PasswordManagerUI extends JFrame {
 
         showStyledMessageDialog(this, "Password copied to clipboard!",
             "Success", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void openSelectedUrl() {
+        int selectedRow = passwordTable.getSelectedRow();
+        if (selectedRow == -1) {
+            showStyledMessageDialog(this, "Please select an entry to open its URL.",
+                "No Selection", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int modelRow = passwordTable.convertRowIndexToModel(selectedRow);
+        PasswordDatabase.PasswordEntry entry = allPasswords.get(modelRow);
+        String rawUrl = entry.url();
+
+        if (rawUrl == null || rawUrl.isBlank()) {
+            showStyledMessageDialog(this, "This entry does not have a URL yet.",
+                "Missing URL", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String normalizedUrl = rawUrl.trim();
+        if (!normalizedUrl.matches("^[a-zA-Z][a-zA-Z0-9+.-]*://.*")) {
+            normalizedUrl = "https://" + normalizedUrl;
+        }
+
+        try {
+            if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                showStyledMessageDialog(this,
+                    "Desktop browser integration is not available on this system.",
+                    "Cannot Open URL", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            Desktop.getDesktop().browse(new URI(normalizedUrl));
+        } catch (Exception e) {
+            showStyledMessageDialog(this,
+                "Could not open URL: " + normalizedUrl,
+                "Invalid or Unavailable URL", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     /**
@@ -1105,7 +1168,7 @@ public class PasswordManagerUI extends JFrame {
         JCheckBox uppercaseCheck = createStyledCheckBox("Uppercase (A-Z)");
         JCheckBox lowercaseCheck = createStyledCheckBox("Lowercase (a-z)");
         JCheckBox digitsCheck = createStyledCheckBox("Digits (0-9)");
-        JCheckBox specialCheck = createStyledCheckBox("Special (!@#$%^&*...)");
+        JCheckBox specialCheck = createStyledCheckBox("Special (!@#$%^&*...)" );
 
         // Word-based options
         JLabel wordCountLabel = createStyledLabel("Number of Words: 4");
@@ -1357,6 +1420,32 @@ public class PasswordManagerUI extends JFrame {
             PasswordManagerUI pm = new PasswordManagerUI(masterPassword);
             pm.setVisible(true);
         });
+    }
+
+    private void showDatabaseConnectionHelpDialog() {
+        String err = database.getLastConnectionError();
+        String details = (err == null || err.isBlank()) ? "Unknown connection error." : err;
+        String proxyStatus = database.getLastProxyStartupStatus();
+        if (proxyStatus == null || proxyStatus.isBlank()) {
+            proxyStatus = "Not attempted.";
+        }
+        String cloudflareHostname = CloudflareTcpProxyManager.getEffectiveHostname();
+        String mode = database.getConnectionMode();
+        boolean cloudflareMode = database.isCloudflareProxyMode();
+        String modeInstructions = cloudflareMode
+            ? "Mode: " + mode + " (Cloudflare tunnel).\n" +
+              "Manual fallback command:\n" +
+              "cloudflared access tcp --hostname " + cloudflareHostname + " --url localhost:13306\n\n" +
+              "If prompted, complete Cloudflare Access login in your browser.\n\n"
+            : "Mode: " + mode + " (direct MySQL).\n" +
+              "Make sure TCP/3306 is reachable from this laptop and your server firewall allows this laptop's public IP.\n\n";
+        showStyledMessageDialog(this,
+            "Could not connect to the password database.\n\n" +
+            modeInstructions +
+            "Proxy startup status: " + proxyStatus + "\n\n" +
+            "Connection error: " + details,
+            "Database Connection Required",
+            JOptionPane.WARNING_MESSAGE);
     }
 
     // Custom rounded border for modern UI

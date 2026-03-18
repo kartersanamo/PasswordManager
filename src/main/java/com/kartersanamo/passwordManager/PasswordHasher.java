@@ -15,11 +15,6 @@ import java.security.SecureRandom;
 import java.security.spec.KeySpec;
 import java.util.Base64;
 
-/**
- * Utility class for hashing and encrypting passwords using Argon2 and AES-GCM.
- * - Master passwords are hashed with Argon2 (one-way, for authentication)
- * - Stored passwords are encrypted with AES-GCM using a key derived from Argon2
- */
 public class PasswordHasher {
 
     // Using Argon2id variant which is resistant to both side-channel and GPU attacks
@@ -35,33 +30,52 @@ public class PasswordHasher {
     private static final int GCM_TAG_LENGTH = 128; // 128 bits
     private static final String AES_ALGORITHM = "AES/GCM/NoPadding";
 
-    // Encryption key derived from user's master password
     private static SecretKey encryptionKey;
+    private static boolean externalEncryptionKeyActive;
 
     /**
      * Sets the master password used for encryption key derivation.
      * This should be called with the secret code when the password manager is unlocked.
-     * 
+     *
      * @param masterPassword the master password (secret code from Flappy Bird)
      */
     public static void setMasterPassword(String masterPassword) {
         if (masterPassword == null || masterPassword.isEmpty()) {
             throw new IllegalArgumentException("Master password cannot be null or empty");
         }
+        if (externalEncryptionKeyActive) {
+            System.out.println("External encryption key is active; secret code will not replace it.");
+            return;
+        }
         encryptionKey = deriveEncryptionKey(masterPassword);
         System.out.println("Encryption key initialized with master password using PBKDF2");
     }
-    
+
     /**
-     * Gets the current encryption key. If no master password is set, uses a default.
-     * 
+     * Sets the encryption key directly from raw bytes (e.g., from ENCRYPTION_KEY env var).
+     * Use this when the key is managed externally rather than derived from a master password.
+     *
+     * @param rawKey 32-byte AES-256 key
+     */
+    public static void setRawKey(byte[] rawKey) {
+        if (rawKey == null || rawKey.length != 32) {
+            throw new IllegalArgumentException("Raw key must be exactly 32 bytes for AES-256");
+        }
+        encryptionKey = new SecretKeySpec(rawKey, "AES");
+        externalEncryptionKeyActive = true;
+        System.out.println("Encryption key loaded from raw ENCRYPTION_KEY");
+    }
+
+    /**
+     * Gets the current encryption key.
+     *
      * @return the encryption key
      */
     private static SecretKey getEncryptionKey() {
         if (encryptionKey == null) {
-            // Fallback for backwards compatibility or testing
-            System.err.println("WARNING: No master password set, using default key!");
-            encryptionKey = deriveEncryptionKey("DEFAULT_FALLBACK_KEY");
+            throw new IllegalStateException(
+                "No encryption key is loaded. Configure ENCRYPTION_KEY, a supported key file, or JVM property."
+            );
         }
         return encryptionKey;
     }

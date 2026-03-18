@@ -20,18 +20,19 @@ Once you've accessed the password manager, you can:
 - **Copy passwords** - Quick copy to clipboard
 - **Toggle View** - Reveal/hide passwords directly in the table
 - **Change Secret Code** - Update your secret code with automatic password migration
-- **Persistent storage** - All entries are saved to an SQLite database
+- **Persistent storage** - All entries are saved to MySQL
+- **Auto proxy startup** - Cloudflare TCP access is started automatically when possible
 
-## 🔑 Changing Your Secret Code
+## Changing Your Secret Code
 
-### ⚠️ IMPORTANT: Your Passwords Are Safe!
+### IMPORTANT: Your Passwords Are Safe!
 
 **You can now change your secret code without losing your passwords!** The system automatically migrates all data.
 
 ### Method 1: Via Password Manager UI (Recommended)
 
 1. Open Password Manager (enter code `3973` on game over screen)
-2. Click "🔑 Change Secret Code" button
+2. Click "Change Secret Code" button
 3. Enter current code, new code, and confirm
 4. All passwords automatically re-encrypted
 5. **Remember to update** `SECRET_CODE` in `Main.java`
@@ -53,11 +54,21 @@ Once you've accessed the password manager, you can:
 - Passwords are displayed as dots (`••••••••`) in the table view
 - Use "Toggle View" button to reveal passwords in the table
 - The password manager remains open until you close the window
-- **All passwords are saved to `passwords.db` and persist between sessions**
+- **All passwords are saved in MySQL and persist between sessions**
 - To return to Flappy Bird, close the password manager and restart the game
-- **Important**: Backup the `passwords.db` file to preserve your passwords
+- **Important**: Backup/export your MySQL data to preserve your passwords
 
 ## Troubleshooting
+
+
+### Cloudflare Access / Database Connection
+The app now attempts to start Cloudflare access automatically when the hidden
+password manager opens.
+
+If Cloudflare Access needs an interactive login or `cloudflared` is not on your
+PATH, run this manually and then reopen the password manager:
+
+`cloudflared access tcp --hostname mysql.kartersanamo.com --url localhost:13306`
 
 ### "Password Migration Required" Dialog
 Appears when you change SECRET_CODE in Main.java:

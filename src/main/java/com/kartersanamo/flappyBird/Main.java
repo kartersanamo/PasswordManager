@@ -2,6 +2,7 @@ package com.kartersanamo.flappyBird;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Arrays;
 import com.kartersanamo.passwordManager.PasswordManagerUI;
 
 public class Main {
@@ -104,8 +105,10 @@ public class Main {
         Pipe topPipe2 = new Pipe(PIPE_WIDTH, PIPE_HEIGHT);
 
         //variables to track x and y image locations for the bottom pipe
-        int xLoc1 = SCREEN_WIDTH+SCREEN_DELAY, xLoc2 = (int) (3.0 /2.0*SCREEN_WIDTH+PIPE_WIDTH/2.0) + SCREEN_DELAY;
-        int yLoc1 = randomLocation(), yLoc2 = randomLocation();
+        int xLoc1 = SCREEN_WIDTH;
+        int xLoc2 = (int) (3.0 /2.0*SCREEN_WIDTH+PIPE_WIDTH/2.0);
+        int yLoc1 = randomLocation();
+        int yLoc2 = randomLocation();
 
         boolean scored1 = false;
         boolean scored2 = false;
@@ -328,11 +331,101 @@ public class Main {
     }
 
     private void openPasswordManager() {
+        configureHiddenAccessConnectionDefaults();
+
+        if (!ensureDatabaseCredentialsConfigured()) {
+            return;
+        }
+
         // Close the Flappy Bird window
         running = false;
         frame.dispose();
 
         // Open the password manager with the secret code as master password
         PasswordManagerUI.launch(SECRET_CODE);
+    }
+
+    private void configureHiddenAccessConnectionDefaults() {
+        String configuredUrl = firstNonBlank(
+            System.getProperty("passwordManager.db.url"),
+            System.getenv("PASSWORD_MANAGER_DB_URL")
+        );
+        String configuredMode = firstNonBlank(
+            System.getProperty("passwordManager.db.mode"),
+            System.getenv("PASSWORD_MANAGER_DB_MODE")
+        );
+
+        // Hidden access should prefer the app's Cloudflare tunnel path unless the user explicitly configured DB mode/URL.
+        if (configuredUrl == null && configuredMode == null) {
+            System.setProperty("passwordManager.db.mode", "cloudflare");
+        }
+    }
+
+    private boolean ensureDatabaseCredentialsConfigured() {
+        String configuredUser = firstNonBlank(
+            System.getProperty("passwordManager.db.user"),
+            System.getenv("PASSWORD_MANAGER_DB_USER"),
+            System.getenv("MYSQL_USER"),
+            "root"
+        );
+        String configuredPassword = firstNonBlank(
+            System.getProperty("passwordManager.db.password"),
+            System.getenv("PASSWORD_MANAGER_DB_PASSWORD"),
+            System.getenv("MYSQL_PASSWORD")
+        );
+
+        if (configuredUser != null && configuredPassword != null) {
+            return true;
+        }
+
+        JTextField usernameField = new JTextField(configuredUser == null ? "sqladmin" : configuredUser, 20);
+        JPasswordField passwordField = new JPasswordField(20);
+
+        JPanel panel = new JPanel(new GridLayout(0, 1, 0, 6));
+        panel.add(new JLabel("Enter database credentials to open Password Manager:"));
+        panel.add(new JLabel("Database user:"));
+        panel.add(usernameField);
+        panel.add(new JLabel("Database password:"));
+        panel.add(passwordField);
+
+        int result = JOptionPane.showConfirmDialog(
+            frame,
+            panel,
+            "Database Credentials Required",
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
+
+        if (result != JOptionPane.OK_OPTION) {
+            return false;
+        }
+
+        String user = usernameField.getText() == null ? "" : usernameField.getText().trim();
+        char[] passwordChars = passwordField.getPassword();
+        String password = new String(passwordChars).trim();
+        Arrays.fill(passwordChars, '\0');
+
+        if (user.isBlank() || password.isBlank()) {
+            JOptionPane.showMessageDialog(
+                frame,
+                "Both database user and password are required.",
+                "Missing Credentials",
+                JOptionPane.WARNING_MESSAGE
+            );
+            return false;
+        }
+
+        System.setProperty("passwordManager.db.user", user);
+        System.setProperty("passwordManager.db.password", password);
+        return true;
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return null;
     }
 }
