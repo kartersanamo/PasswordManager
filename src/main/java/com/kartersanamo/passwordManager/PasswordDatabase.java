@@ -556,11 +556,8 @@ public class PasswordDatabase {
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, service);
             pstmt.setString(2, username);
-            // Re-encrypt only if the caller passed a plaintext value
-            String pwToStore = PasswordHasher.isEncrypted(password)
-                    ? password
-                    : PasswordHasher.encryptPassword(password);
-            pstmt.setString(3, pwToStore);
+            // Always encrypt user input from the edit form; heuristic detection can misclassify Base64-looking plaintext.
+            pstmt.setString(3, PasswordHasher.encryptPassword(password));
             pstmt.setString(4, (url != null && !url.isBlank()) ? url : null);
             pstmt.setString(5, (notes != null && !notes.isBlank())
                     ? PasswordHasher.encryptPassword(notes) : null);

@@ -2,7 +2,20 @@ package com.kartersanamo.flappyBird;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.HashMap;
+import java.util.EnumSet;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import com.kartersanamo.passwordManager.PasswordManagerUI;
 
 public class Main {
@@ -23,6 +36,8 @@ public class Main {
     public static final String SPRITES_PATH = "/sprites";
     public static final String AUDIO_PATH = "/audio";
     private static final String SECRET_CODE = "3973";
+    private static final String DB_CREDENTIALS_DIR = ".password-manager";
+    private static final String DB_CREDENTIALS_FILE = "db.properties";
 
     private static final Main game = new Main();
 
@@ -362,23 +377,37 @@ public class Main {
     }
 
     private boolean ensureDatabaseCredentialsConfigured() {
+        DbCredentials dotEnvCredentials = loadDotEnvCredentials();
+        DbCredentials storedCredentials = loadStoredDbCredentials();
+
         String configuredUser = firstNonBlank(
             System.getProperty("passwordManager.db.user"),
             System.getenv("PASSWORD_MANAGER_DB_USER"),
             System.getenv("MYSQL_USER"),
+            dotEnvCredentials == null ? null : dotEnvCredentials.user(),
+            storedCredentials == null ? null : storedCredentials.user(),
             "root"
         );
         String configuredPassword = firstNonBlank(
             System.getProperty("passwordManager.db.password"),
             System.getenv("PASSWORD_MANAGER_DB_PASSWORD"),
-            System.getenv("MYSQL_PASSWORD")
+            System.getenv("MYSQL_PASSWORD"),
+            dotEnvCredentials == null ? null : dotEnvCredentials.password(),
+            storedCredentials == null ? null : storedCredentials.password()
         );
 
         if (configuredUser != null && configuredPassword != null) {
+            System.setProperty("passwordManager.db.user", configuredUser);
+            System.setProperty("passwordManager.db.password", configuredPassword);
+            if (storedCredentials == null
+                || !configuredUser.equals(storedCredentials.user())
+                || !configuredPassword.equals(storedCredentials.password())) {
+                saveDbCredentials(configuredUser, configuredPassword);
+            }
             return true;
         }
 
-        JTextField usernameField = new JTextField(configuredUser == null ? "sqladmin" : configuredUser, 20);
+        JTextField usernameField = new JTextField(configuredUser == null ? "root" : configuredUser, 20);
         JPasswordField passwordField = new JPasswordField(20);
 
         JPanel panel = new JPanel(new GridLayout(0, 1, 0, 6));
@@ -417,7 +446,147 @@ public class Main {
 
         System.setProperty("passwordManager.db.user", user);
         System.setProperty("passwordManager.db.password", password);
+        saveDbCredentials(user, password);
         return true;
+    }
+
+    private DbCredentials loadStoredDbCredentials() {
+        Path path = getDbCredentialsPath();
+        if (path == null || !Files.isRegularFile(path)) {
+            return null;
+        }
+
+        Properties properties = new Properties();
+        try (InputStream in = Files.newInputStream(path)) {
+            properties.load(in);
+        } catch (IOException e) {
+            System.err.println("Unable to read stored DB credentials: " + e.getMessage());
+            return null;
+        }
+
+        String user = firstNonBlank(properties.getProperty("user"));
+        String password = firstNonBlank(properties.getProperty("password"));
+        if (user == null || password == null) {
+            return null;
+        }
+        return new DbCredentials(user, password);
+    }
+
+    private DbCredentials loadDotEnvCredentials() {
+        for (Path candidate : getDotEnvCandidates()) {
+            if (!Files.isRegularFile(candidate)) {
+                continue;
+            }
+
+            try {
+                Map<String, String> values = parseDotEnv(candidate);
+                String user = firstNonBlank(values.get("PASSWORD_MANAGER_DB_USER"), values.get("MYSQL_USER"));
+                String password = firstNonBlank(values.get("PASSWORD_MANAGER_DB_PASSWORD"), values.get("MYSQL_PASSWORD"));
+                if (user != null && password != null) {
+                    return new DbCredentials(user, password);
+                }
+            } catch (IOException e) {
+                System.err.println("Unable to read .env credentials from " + candidate + ": " + e.getMessage());
+            }
+        }
+        return null;
+    }
+
+    private List<Path> getDotEnvCandidates() {
+        Path homeEnv = getDbCredentialsPath() == null ? null : getDbCredentialsPath().getParent().resolve(".env");
+        Path workingDirEnv = Paths.get(System.getProperty("user.dir", "."), ".env").toAbsolutePath().normalize();
+        Path appDirEnv = getApplicationDirectory() == null ? null : getApplicationDirectory().resolve(".env");
+        return List.of(
+            homeEnv == null ? Paths.get("/__missing_home_env__") : homeEnv,
+            workingDirEnv,
+            appDirEnv == null ? Paths.get("/__missing_app_env__") : appDirEnv
+        );
+    }
+
+    private Path getApplicationDirectory() {
+        try {
+            Path codeSource = Paths.get(Main.class.getProtectionDomain()
+                .getCodeSource().getLocation().toURI()).toAbsolutePath().normalize();
+            return Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Map<String, String> parseDotEnv(Path envFile) throws IOException {
+        Map<String, String> values = new HashMap<>();
+        for (String rawLine : Files.readAllLines(envFile)) {
+            String line = rawLine == null ? "" : rawLine.trim();
+            if (line.isEmpty() || line.startsWith("#")) {
+                continue;
+            }
+            if (line.startsWith("export ")) {
+                line = line.substring("export ".length()).trim();
+            }
+
+            int eq = line.indexOf('=');
+            if (eq <= 0) {
+                continue;
+            }
+
+            String key = line.substring(0, eq).trim();
+            String value = line.substring(eq + 1).trim();
+            values.put(key, unquote(value));
+        }
+        return values;
+    }
+
+    private String unquote(String value) {
+        if (value == null || value.length() < 2) {
+            return value;
+        }
+        if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+            return value.substring(1, value.length() - 1);
+        }
+        return value;
+    }
+
+    private void saveDbCredentials(String user, String password) {
+        Path path = getDbCredentialsPath();
+        if (path == null) {
+            return;
+        }
+
+        try {
+            Files.createDirectories(path.getParent());
+
+            Properties properties = new Properties();
+            properties.setProperty("user", user);
+            properties.setProperty("password", password);
+
+            try (OutputStream out = Files.newOutputStream(path)) {
+                properties.store(out, "Password Manager DB credentials");
+            }
+
+            setOwnerOnlyPermissions(path);
+        } catch (IOException e) {
+            System.err.println("Unable to persist DB credentials: " + e.getMessage());
+        }
+    }
+
+    private Path getDbCredentialsPath() {
+        String userHome = System.getProperty("user.home");
+        if (userHome == null || userHome.isBlank()) {
+            return null;
+        }
+        return Paths.get(userHome, DB_CREDENTIALS_DIR, DB_CREDENTIALS_FILE);
+    }
+
+    private void setOwnerOnlyPermissions(Path path) {
+        try {
+            Set<PosixFilePermission> perms = EnumSet.of(
+                PosixFilePermission.OWNER_READ,
+                PosixFilePermission.OWNER_WRITE
+            );
+            Files.setPosixFilePermissions(path, perms);
+        } catch (UnsupportedOperationException | IOException ignored) {
+            // Best effort only; some filesystems do not support POSIX permissions.
+        }
     }
 
     private String firstNonBlank(String... values) {
@@ -428,4 +597,6 @@ public class Main {
         }
         return null;
     }
+
+    private record DbCredentials(String user, String password) {}
 }
