@@ -57,7 +57,7 @@ public class Main {
     private boolean deathSoundPlayed = false;
     private final StringBuilder keySequence = new StringBuilder();
 
-    static void main() {
+    public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             game.buildFrame();
             game.initAudio();
@@ -370,10 +370,20 @@ public class Main {
             System.getenv("PASSWORD_MANAGER_DB_MODE")
         );
 
-        // Hidden access should prefer the app's Cloudflare tunnel path unless the user explicitly configured DB mode/URL.
+        // Hidden access should prefer Cloudflare unless the user explicitly configured DB mode/URL.
         if (configuredUrl == null && configuredMode == null) {
             System.setProperty("passwordManager.db.mode", "cloudflare");
         }
+
+        String effectiveMode = firstNonBlank(
+            System.getProperty("passwordManager.db.mode"),
+            System.getenv("PASSWORD_MANAGER_DB_MODE"),
+            "direct"
+        );
+        String modeSource = configuredMode != null
+            ? "explicit mode override"
+            : (configuredUrl != null ? "explicit URL override" : "hidden-access default");
+        System.out.println("Hidden access DB mode: " + effectiveMode + " (" + modeSource + ")");
     }
 
     private boolean ensureDatabaseCredentialsConfigured() {
