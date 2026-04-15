@@ -51,8 +51,11 @@ public final class CloudflareTcpProxyManager {
         String executable = resolveCloudflaredExecutable();
         if (executable == null) {
             lastRuntimeDiagnostic = "Could not find cloudflared executable.";
+            String installMsg = isWindows()
+                ? "Set CLOUDFLARED_PATH or install cloudflared from https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/"
+                : "Set CLOUDFLARED_PATH or install cloudflared to /opt/homebrew/bin/cloudflared.";
             return new ProxyStartResult(false,
-                "Could not find cloudflared executable. Set CLOUDFLARED_PATH or install cloudflared to /opt/homebrew/bin/cloudflared.");
+                "Could not find cloudflared executable. " + installMsg);
         }
 
         String hostname = getEffectiveHostname();
@@ -62,11 +65,14 @@ public final class CloudflareTcpProxyManager {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             processBuilder.redirectErrorStream(true);
-            // Packaged macOS apps often have a minimal PATH.
+            // Augment PATH with typical installation locations for cloudflared.
             String path = processBuilder.environment().getOrDefault("PATH", "");
-            String extraPath = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin";
+            String extraPath = isWindows()
+                ? getWindowsExtraPath()
+                : "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin";
+            String pathSeparator = isWindows() ? ";" : ":";
             processBuilder.environment().put("PATH",
-                (path == null || path.isBlank()) ? extraPath : (path + ":" + extraPath));
+                (path == null || path.isBlank()) ? extraPath : (path + pathSeparator + extraPath));
 
             Process proxyProcess = processBuilder.start();
             appOwnedProxyProcess = proxyProcess;
@@ -200,29 +206,58 @@ public final class CloudflareTcpProxyManager {
 
     private static List<Path> candidateExecutablePaths() {
         List<Path> candidates = new ArrayList<>();
-        candidates.add(Paths.get("/opt/homebrew/bin/cloudflared"));
-        candidates.add(Paths.get("/usr/local/bin/cloudflared"));
-        candidates.add(Paths.get("/usr/bin/cloudflared"));
+        
+        if (isWindows()) {
+            // Windows-specific paths
+            String programFiles = System.getenv("ProgramFiles");
+            if (programFiles != null && !programFiles.isBlank()) {
+                candidates.add(Paths.get(programFiles, "cloudflare", "cloudflared", "cloudflared.exe"));
+                candidates.add(Paths.get(programFiles, "cloudflared", "cloudflared.exe"));
+            }
+            
+            String programFilesX86 = System.getenv("ProgramFiles(x86)");
+            if (programFilesX86 != null && !programFilesX86.isBlank()) {
+                candidates.add(Paths.get(programFilesX86, "cloudflare", "cloudflared", "cloudflared.exe"));
+                candidates.add(Paths.get(programFilesX86, "cloudflared", "cloudflared.exe"));
+            }
+            
+            String localAppData = System.getenv("LOCALAPPDATA");
+            if (localAppData != null && !localAppData.isBlank()) {
+                candidates.add(Paths.get(localAppData, "cloudflared", "cloudflared.exe"));
+            }
+            
+            String userHome = System.getProperty("user.home");
+            if (userHome != null && !userHome.isBlank()) {
+                candidates.add(Paths.get(userHome, "AppData", "Local", "cloudflared", "cloudflared.exe"));
+                candidates.add(Paths.get(userHome, "bin", "cloudflared.exe"));
+            }
+        } else {
+            // Unix/macOS paths
+            candidates.add(Paths.get("/opt/homebrew/bin/cloudflared"));
+            candidates.add(Paths.get("/usr/local/bin/cloudflared"));
+            candidates.add(Paths.get("/usr/bin/cloudflared"));
 
-        String userHome = System.getProperty("user.home");
-        if (userHome != null && !userHome.isBlank()) {
-            candidates.add(Paths.get(userHome, "bin", "cloudflared"));
+            String userHome = System.getProperty("user.home");
+            if (userHome != null && !userHome.isBlank()) {
+                candidates.add(Paths.get(userHome, "bin", "cloudflared"));
+            }
         }
 
         Path appDir = getApplicationDirectory();
         if (appDir != null) {
-            candidates.add(appDir.resolve("cloudflared"));
-            candidates.add(appDir.resolve("bin").resolve("cloudflared"));
+            String exeName = isWindows() ? "cloudflared.exe" : "cloudflared";
+            candidates.add(appDir.resolve(exeName));
+            candidates.add(appDir.resolve("bin").resolve(exeName));
 
             Path macOsDir = findAncestorByName(appDir, "MacOS");
             if (macOsDir != null) {
-                candidates.add(macOsDir.resolve("cloudflared"));
+                candidates.add(macOsDir.resolve(exeName));
             }
 
             Path resourcesDir = findAncestorByName(appDir, "Resources");
             if (resourcesDir != null) {
-                candidates.add(resourcesDir.resolve("cloudflared"));
-                candidates.add(resourcesDir.resolve("bin").resolve("cloudflared"));
+                candidates.add(resourcesDir.resolve(exeName));
+                candidates.add(resourcesDir.resolve("bin").resolve(exeName));
             }
         }
         return candidates;
@@ -307,6 +342,39 @@ public final class CloudflareTcpProxyManager {
     }
 
     public record ProxyStartResult(boolean ready, String message) {
+    }
+
+    private static boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase().contains("windows");
+    }
+
+    private static String getWindowsExtraPath() {
+        List<String> paths = new ArrayList<>();
+        
+        String programFiles = System.getenv("ProgramFiles");
+        if (programFiles != null && !programFiles.isBlank()) {
+            paths.add(programFiles + "\\cloudflare\\cloudflared");
+            paths.add(programFiles + "\\cloudflared");
+        }
+        
+        String programFilesX86 = System.getenv("ProgramFiles(x86)");
+        if (programFilesX86 != null && !programFilesX86.isBlank()) {
+            paths.add(programFilesX86 + "\\cloudflare\\cloudflared");
+            paths.add(programFilesX86 + "\\cloudflared");
+        }
+        
+        String localAppData = System.getenv("LOCALAPPDATA");
+        if (localAppData != null && !localAppData.isBlank()) {
+            paths.add(localAppData + "\\cloudflared");
+        }
+        
+        String userHome = System.getProperty("user.home");
+        if (userHome != null && !userHome.isBlank()) {
+            paths.add(userHome + "\\AppData\\Local\\cloudflared");
+            paths.add(userHome + "\\bin");
+        }
+        
+        return String.join(";", paths);
     }
 }
 
