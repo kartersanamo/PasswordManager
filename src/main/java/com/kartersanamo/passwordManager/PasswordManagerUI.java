@@ -35,6 +35,8 @@ public class PasswordManagerUI extends JFrame {
     private static final Color BORDER_COLOR = new Color(60, 60, 60);
 
     private static final String HOME_PAGE_ID = "home";
+    private static final int DEFAULT_SCROLL_UNIT_INCREMENT = 20;
+    private static final int DEFAULT_SCROLL_BLOCK_INCREMENT = 80;
 
     private final DefaultTableModel tableModel;
     private final JTable passwordTable;
@@ -180,7 +182,7 @@ public class PasswordManagerUI extends JFrame {
         searchPanel.add(clearSearchButton);
 
         // Create modern styled table
-        String[] columnNames = {"Website/Service", "URL", "Username/Email", "Password", "Notes"};
+        String[] columnNames = {"Service", "URL", "Username/Email", "Password", "Notes"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -310,6 +312,10 @@ public class PasswordManagerUI extends JFrame {
         contentScroll.setBorder(BorderFactory.createEmptyBorder());
         contentScroll.getViewport().setBackground(BACKGROUND_DARK);
         contentScroll.setBackground(BACKGROUND_DARK);
+        contentScroll.getVerticalScrollBar().setUnitIncrement(DEFAULT_SCROLL_UNIT_INCREMENT);
+        contentScroll.getVerticalScrollBar().setBlockIncrement(DEFAULT_SCROLL_BLOCK_INCREMENT);
+        contentScroll.getHorizontalScrollBar().setUnitIncrement(DEFAULT_SCROLL_UNIT_INCREMENT);
+        contentScroll.getHorizontalScrollBar().setBlockIncrement(DEFAULT_SCROLL_BLOCK_INCREMENT);
         styleScrollBar(contentScroll.getVerticalScrollBar());
         styleScrollBar(contentScroll.getHorizontalScrollBar());
 
@@ -683,7 +689,7 @@ public class PasswordManagerUI extends JFrame {
         generateButton.addActionListener(_ -> openPasswordGeneratorPage(passwordField::setText));
 
         gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0; gbc.gridwidth = 1;
-        panel.add(createStyledLabel("Website/Service:"), gbc);
+        panel.add(createStyledLabel("Service:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 2;
         panel.add(serviceField, gbc);
 
@@ -779,7 +785,7 @@ public class PasswordManagerUI extends JFrame {
         generateButton.addActionListener(_ -> openPasswordGeneratorPage(passwordField::setText));
 
         gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0; gbc.gridwidth = 1;
-        panel.add(createStyledLabel("Website/Service:"), gbc);
+        panel.add(createStyledLabel("Service:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 2;
         panel.add(serviceField, gbc);
 
